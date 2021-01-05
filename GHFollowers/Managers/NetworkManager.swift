@@ -12,22 +12,22 @@ class NetworkManager{
     private init (){ }
     let siteUrl = "https://api.github.com/users/"
     
-    func getData(_ UserName:String,atPage page:Int,completed: @escaping([Follower]?,ErrorMessage?)->Void){
+    func getData(_ UserName:String,atPage page:Int,completed: @escaping(Result<[Follower],GFError>)->Void){
         
         let endpoint =  "\(siteUrl)\(UserName)/followers?per_page=100&page=\(page)#"
         guard let url = URL(string: endpoint)else{
-            completed(nil,.invalidData)
+            completed(.failure(.invalidUsername))
             return
         }
         
         
         let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
             if let _ = error{
-                completed(nil,.invalidUsername)
+                completed(.failure(.unableToComplete))
                 return
             }
             guard let response = response as? HTTPURLResponse,response.statusCode == 200 else{
-                completed(nil,.invalidResponse)
+                completed(.failure(.unableToComplete))
                 return
             }
             if let safeData = data{
@@ -35,13 +35,13 @@ class NetworkManager{
                 print(safeData)
                 print(url)
                 if let decodedFollowers = self.decodeJSON(safeData){
-                    completed(decodedFollowers,.unableToComplete)
+                    completed(.success(decodedFollowers))
                     
                 }else{
-                    completed(nil,.invalidData)
+                    completed(.failure(.invalidData))
                 }
             }else{
-                completed(nil, .invalidData)
+                completed(.failure(.invalidData))
             }
         }
         task.resume()
